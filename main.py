@@ -20,8 +20,8 @@
 #type = 'minimize'
 #solsgn = '>='
 #name = 'P5R3'
-def LinProgProb(A,b,c,ineqs,type,solsgn,name):
-    if type == 'minimize' or type == 'maximize':
+def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
+    if optimoption == 'minimize' or optimoption == 'maximize':
         m = len(A)
         n = len(A[0])
         wmath = open(f"{name}.nb", "w+")
@@ -34,7 +34,7 @@ def LinProgProb(A,b,c,ineqs,type,solsgn,name):
         else:
             plotspan += '0,R}'
         sgngrad = ''
-        if type == 'minimize':
+        if optimoption == 'minimize':
             sgngrad = '-'
         else:
             sgngrad = ''
@@ -45,7 +45,7 @@ def LinProgProb(A,b,c,ineqs,type,solsgn,name):
         constsmod.extend([''] + [f'subject to const{m + 1}' + ' {j in C} :'] + [f'  x[j] {solsgn} 0;'])
         lineswmod = ['param m >= 0, integer;', 'param n >= 0, integer;', '', '', 'set R := 1..m;', 'set C := 1..n;', '',
                      'var x{C};', 'param c{C};', 'param a{R,C};', 'param b{R};', '',
-                     f'{type} cost' + ' : sum {i in C} c[i]*x[i];'] + constsmod
+                     f'{optimoption} cost' + ' : sum {i in C} c[i]*x[i];'] + constsmod
         lineswrun = ['reset;', f'model {name}.mod;', f'data {name}.dat;', 'option solver gurobi;', 'solve;',
                      'display x;',
                      'display cost;']
