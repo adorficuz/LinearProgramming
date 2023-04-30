@@ -1,4 +1,4 @@
-from wolframclient.evaluation import WolframLanguageSession
+from wolframclient.evaluation import WolframCloudSession, SecuredAuthenticationKey
 from wolframclient.language import wlexpr, wl
 from PIL import Image
 import io
@@ -90,7 +90,7 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
         else:
             soltuple = None
         print(f'La solución es {soltuple}')
-        R = max(list(map(lambda x: abs(x),soltuple)))
+        R = max(list(map(lambda x: abs(x),soltuple))) + 1
         plotspan = ''
         if solsgn == '<=':
             plotspan += f'-{R}'+',0}'
@@ -115,8 +115,11 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
             session = WolframCloudSession(credentials=key)
             session.start()
             session.authorized()
-            img = session.evaluate(wlexpr(lineswmath[0]))
-            plt.plot(img)
+            with session:
+              plot = session.evaluate(wlexpr(lineswmath[0]))
+              img_data = session.evaluate(wl.ExportByteArray(plot, 'PNG'))
+              img = Image.open(io.BytesIO(img_data))
+            return img
         elif n == 3:
             consts = f'({A[0][0]})*x + ({A[0][1]})*y + ({A[0][2]})*z {ineqs[0]} {b[0]}'
             for i in range(1, m):
@@ -131,8 +134,11 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
             session = WolframCloudSession(credentials=key)
             session.start()
             session.authorized()
-            img = session.evaluate(wlexpr(lineswmath[0]))
-            plt.plot(img)
+            with session:
+              plot = session.evaluate(wlexpr(lineswmath[0]))
+              img_data = session.evaluate(wl.ExportByteArray(plot, 'PNG'))
+              img = Image.open(io.BytesIO(img_data))
+            return img
         else:
             print("I cannot plot this data")
     else:
