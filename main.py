@@ -38,16 +38,6 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
         wampldata = open(f"{name}.dat", "w+")
         wamplmod = open(f"{name}.mod", "w+")
         wamplrun = open(f"{name}.run", "w+")
-        plotspan = ''
-        if solsgn == '<=':
-            plotspan += '-R,0}'
-        else:
-            plotspan += '0,R}'
-        sgngrad = ''
-        if optimoption == 'minimize':
-            sgngrad = '-'
-        else:
-            sgngrad = ''
         constsmod = list()
         for i in range(0, m):
             constsmod.extend([''] + [f'subject to const{i + 1}:'] + [
@@ -100,39 +90,49 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
         else:
             soltuple = None
         print(f'La solución es {soltuple}')
+        R = max(list(map(lambda x: abs(x),soltuple)))
+        plotspan = ''
+        if solsgn == '<=':
+            plotspan += f'-{R}'+',0}'
+        else:
+            plotspan += f'0,{R}'+'}'
+        sgngrad = ''
+        if optimoption == 'minimize':
+            sgngrad = '-'
+        else:
+            sgngrad = ''
         if n == 2:
             consts = f'({A[0][0]})*x + ({A[0][1]})*y {ineqs[0]} {b[0]}'
             for i in range(1, m):
                 consts += f' && ({A[i][0]})*x + ({A[i][1]})*y {ineqs[i]} {b[i]}'
-            lineswmath = [f'a = {c[0]};', f'b = {c[1]};', f'f[a_, b_, x_, y_] := (a*x + b*y) ;', f'R = 10;',
-                          'VectorPlot[Evaluate@Grad['+sgngrad+'f[a, b, x, y], {x, y}], {x,' + plotspan +', {y,' + plotspan + ', VectorScale -> Small, VectorPoints -> Coarse, VectorStyle -> Green];'
-                ,
-                          'Show[ContourPlot[f[a, b, x, y], {x,' + plotspan + ', {y,' + plotspan + ', ContourStyle -> Opacity[0.5], Contours -> 50],RegionPlot[' + consts + ',{x,' + plotspan + ', {y,' + plotspan + ', PlotPoints -> 100, PlotStyle -> Directive[Purple, Opacity[0.8]]], ListPlot[{{'+ f'{list(soltuple)[0]} , {list(soltuple)[1]}' +'}} -> {"'+f'{soltuple}'+'"}, PlotRange -> {{' + plotspan + ', {' + plotspan + '}, PlotStyle -> Directive[PointSize[Large], Red]], %]']
+            lineswmath = ['Show[ContourPlot['+f'({c[0]}*x + {c[1]}*y)'+', {x,' + plotspan + ', {y,' + plotspan + ', ContourStyle -> Opacity[0.5], Contours -> 50],RegionPlot[' + consts + ',{x,' + plotspan + ', {y,' + plotspan + ', PlotPoints -> 100, PlotStyle -> Directive[Purple, Opacity[0.8]]], ListPlot[{{'+ f'{list(soltuple)[0]} , {list(soltuple)[1]}' +'}} -> {"'+f'{soltuple}'+'"}, PlotRange -> {{' + plotspan + ', {' + plotspan + '}, PlotStyle -> Directive[PointSize[Large], Red]],'+ 'VectorPlot[Evaluate@Grad['+sgngrad+ f'({c[0]}*x + {c[1]}*y)'+', {x, y}], {x,' + plotspan +', {y,' + plotspan + ', VectorScale -> Small, VectorPoints -> Coarse, VectorStyle -> Green]]']
             wmath.writelines(line + '\n' for line in lineswmath)
             wmath.close()
             mathfile = open(f'{name}.nb', 'r').read()
-            with WolframLanguageSession() as session:
-                plot = session.evaluate(wlexpr(mathfile))
-                img_data = session.evaluate(wl.ExportByteArray(plot, 'PNG'))
-                img = Image.open(io.BytesIO(img_data))
-            img
+            key = SecuredAuthenticationKey(
+                'CHOGj5GchiB0tMPRNk8genB9IhpnrAMuR3iC39lSE4U=',
+                'mmCL94BkmyACjNvMmmgQnept+D9VzCi0pus6+fBM13c=')
+            session = WolframCloudSession(credentials=key)
+            session.start()
+            session.authorized()
+            img = session.evaluate(wlexpr(lineswmath[0]))
+            plt.plot(img)
         elif n == 3:
             consts = f'({A[0][0]})*x + ({A[0][1]})*y + ({A[0][2]})*z {ineqs[0]} {b[0]}'
             for i in range(1, m):
                 consts += f' && ({A[i][0]})*x + ({A[i][1]})*y + ({A[i][2]})*z {ineqs[i]} {b[i]}'
-            lineswmath = [f'a = {c[0]};', f'b = {c[1]};', f'c = {c[2]}',
-                          f'f[a_, b_, c_ , x_, y_ , z_] := (a*x + b*y +c*z) ;', f'R = 10;',
-                          'VectorPlot3D[Evaluate@Grad['+sgngrad+'f[a, b, c, x, y ,z], {x, y, z}], {x,' + plotspan +', {y,' + plotspan +', {z,' + plotspan +', VectorScale -> Small, VectorPoints -> Coarse, VectorStyle -> Green];'
-                ,
-                          'Show[ContourPlot[f[a, b, c, x, y, z], {x,' + plotspan +', {y,' + plotspan +', {z,' + plotspan +', ContourStyle -> Opacity[0.5], Contours -> 10],RegionPlot[' + consts + ',{x,' + plotspan +', {y,' + plotspan +', {z,' + plotspan +', PlotPoints -> 100, PlotStyle -> Directive[Purple, Opacity[0.8]]], ListPointPlot3D[{{'+f'{list(soltuple)[0]}'+f'{list(soltuple)[1]}'+f'{list(soltuple)[2]}'+'}}, PlotRange -> {{' + plotspan + ', {' + plotspan + ', {' + plotspan + '}, PlotStyle -> Directive[PointSize[Large], Red]], %]']
+            lineswmath = ['Show[ContourPlot3D['+f'({c[0]}*x + {c[1]}*y + {c[2]}*z)'+', {x,' + plotspan + ', {y,' + plotspan + ', {z,' + plotspan + ', ContourStyle -> Opacity[0.5], Contours -> 10],RegionPlot[' + consts + ',{x,' + plotspan + ', {y,' + plotspan + ' {z,' + plotspan + ', PlotPoints -> 100, PlotStyle -> Directive[Purple, Opacity[0.8]]], ListPointPlot3D[{{'+ f'{list(soltuple)[0]} , {list(soltuple)[1]} , {list(soltuple)[2]}' +'}}, PlotRange -> {{' + plotspan + ', {' + plotspan + '}, PlotStyle -> Directive[PointSize[Large], Red]],'+ 'VectorPlot3D[Evaluate@Grad['+sgngrad+ f'({c[0]}*x + {c[1]}*y + {c[2]}*z)'+', {x, y, z}], {x,' + plotspan +', {y,' + plotspan + ', VectorScale -> Small, VectorPoints -> Coarse, VectorStyle -> Green]]']
             wmath.writelines(line + '\n' for line in lineswmath)
             wmath.close()
             mathfile = open(f'{name}.nb', 'r').read()
-            with WolframLanguageSession() as session:
-                plot = session.evaluate(wlexpr(mathfile))
-                img_data = session.evaluate(wl.ExportByteArray(plot, 'PNG'))
-                img = Image.open(io.BytesIO(img_data))
-            img
+            key = SecuredAuthenticationKey(
+                'CHOGj5GchiB0tMPRNk8genB9IhpnrAMuR3iC39lSE4U=',
+                'mmCL94BkmyACjNvMmmgQnept+D9VzCi0pus6+fBM13c=')
+            session = WolframCloudSession(credentials=key)
+            session.start()
+            session.authorized()
+            img = session.evaluate(wlexpr(lineswmath[0]))
+            plt.plot(img)
         else:
             print("I cannot plot this data")
     else:
