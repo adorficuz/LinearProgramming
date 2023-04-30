@@ -199,7 +199,7 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
             consts = f'({A[0][0]})*x + ({A[0][1]})*y + ({A[0][2]})*z {ineqs[0]} {b[0]}'
             for i in range(1, m):
                 consts += f' && ({A[i][0]})*x + ({A[i][1]})*y + ({A[i][2]})*z {ineqs[i]} {b[i]}'
-            lineswmath = ['Show[ContourPlot3D['+f'({c[0]}*x + {c[1]}*y + {c[2]}*z)'+', {x,' + plotspan + ', {y,' + plotspan + ', {z,' + plotspan + ', ContourStyle -> Opacity[0.5], Contours -> 10],RegionPlot3D[' + consts + ',{x,' + plotspan + ', {y,' + plotspan + ', {z,' + plotspan + ', PlotPoints -> 100, PlotStyle -> Directive[Purple, Opacity[0.8]]],' + f'{Listplot3D}' + 'VectorPlot3D[Evaluate@Grad['+sgngrad+ f'({c[0]}*x + {c[1]}*y + {c[2]}*z)'+', {x, y, z}], {x,' + plotspan +', {y,' + plotspan + ', {z,' + plotspan + ', VectorScale -> Small, VectorPoints -> Coarse, VectorStyle -> Green], Axes-> true, AxesLabel -> {x,y,z}]']
+            lineswmath = ['Show[ContourPlot3D['+f'({c[0]}*x + {c[1]}*y + {c[2]}*z)'+', {x,' + plotspan + ', {y,' + plotspan + ', {z,' + plotspan + ', ContourStyle -> Opacity[0.3], Contours -> 10],RegionPlot3D[' + consts + ',{x,' + plotspan + ', {y,' + plotspan + ', {z,' + plotspan + ', PlotPoints -> 100, PlotStyle -> Directive[Purple, Opacity[0.8]]],' + f'{Listplot3D}' + 'VectorPlot3D[Evaluate@Grad['+sgngrad+ f'({c[0]}*x + {c[1]}*y + {c[2]}*z)'+', {x, y, z}], {x,' + plotspan +', {y,' + plotspan + ', {z,' + plotspan + ', VectorScale -> Small, VectorPoints -> Coarse, VectorStyle -> Directive[Green,Opacity[0.5]]], Axes -> True, AxesLabel -> {x,y,z}]']
             wmath.writelines(line + '\n' for line in lineswmath)
             wmath.close()
             mathfile = open(f'{name}.nb', 'r').read()
