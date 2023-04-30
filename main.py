@@ -89,7 +89,7 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
             constsmod.extend([''] + [f'subject to const{m + 2}' + ' {j in ' + compInd + '} :'] + [f'  y[j] {solsgn} 0;'])
         lineswmod = ['param m >= 0, integer;', 'param n >= 0, integer;', '', '', 'set R := 1..m;', 'set C := 1..n;', newIndSet, compIndSet ,'',
                      'var x{'+ newInd + '}' + soltype + ';', compInd  , 'param c{C};', 'param a{R,C};', 'param b{R};', '',
-                     f'{optimoption} cost' + ' : '+'sum {i in '+newInd+'} c[i]*x[i]'+ compcost + ';'] + constsmod
+                     f'{probtype} cost' + ' : '+'sum {i in '+newInd+'} c[i]*x[i]'+ compcost + ';'] + constsmod
         lineswrun = ['reset;', f'model {name}.mod;', f'data {name}.dat;', 'option solver gurobi;', 'solve;',
                      'display x'+vardisp+';',
                      'display cost;']
