@@ -3,5 +3,5 @@ model P5R3.mod;
 data P5R3.dat;
 option solver gurobi;
 solve;
-display x;
+display x, y;
 display cost;

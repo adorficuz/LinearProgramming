@@ -31,23 +31,67 @@ import pandas
 #solsgn = '>='
 #name = 'P5R3'
 def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
-    if optimoption == 'minimize' or optimoption == 'maximize':
+    if optimoption == 'minimize' or optimoption == 'maximize' or (len(optimoption) == 2 and (optimoption[0] == 'minimize' or optimoption[0] == 'maximize') and optimoption[1] == 'integer') or (len(optimoption) == 3 and (optimoption[0] == 'minimize' or optimoption[0] == 'maximize') and optimoption[1] == 'integer' and len(optimoption[2]) != len(A[0])):
         m = len(A)
         n = len(A[0])
         wmath = open(f"{name}.nb", "w+")
         wampldata = open(f"{name}.dat", "w+")
         wamplmod = open(f"{name}.mod", "w+")
         wamplrun = open(f"{name}.run", "w+")
+        if type(optimoption) == str:
+            probtype = optimoption
+            newInd = 'C'
+            newIndSet = ''
+            newIndSetList = list(range(1, n + 1))
+            compInd = ''
+            compIndSet = ''
+            compIndSetList = list()
+            soltype = ''
+        elif type(optimoption) == list and len(optimoption) == 2:
+            probtype = optimoption[0]
+            newInd = 'C'
+            newIndSet = ''
+            newIndSetList = list(range(1,n+1))
+            compInd  = ''
+            compIndSet = ''
+            compIndSetList = list()
+            soltype = ', integer'
+        else:
+            probtype = optimoption[0]
+            newInd = 'I'
+            newIndSet = 'set I := {' + f'{optimoption[2][0]}'
+            for i in range(1,len(optimoption[2])):
+                newIndSet += f', {optimoption[2][i]}'
+            newIndSet += '};'
+            newIndSetList = optimoption[2]
+            compInd = 'var y{J};'
+            compIndSetList = [item for item in list(range(1,n+1)) if item not in newIndSetList]
+            compIndSet = 'set J := {' + f'{compIndSetList[0]}'
+            for i in range(1,len(compIndSetList)):
+                compIndSet += f', {compIndSet[i]}'
+            compIndSet += '};'
+            soltype = ', integer'
         constsmod = list()
-        for i in range(0, m):
-            constsmod.extend([''] + [f'subject to const{i + 1}:'] + [
-                '  sum {j in C}' + f' a[{i + 1},j]*x[j] {ineqs[i]} b[{i + 1}];'])
-        constsmod.extend([''] + [f'subject to const{m + 1}' + ' {j in C} :'] + [f'  x[j] {solsgn} 0;'])
-        lineswmod = ['param m >= 0, integer;', 'param n >= 0, integer;', '', '', 'set R := 1..m;', 'set C := 1..n;', '',
-                     'var x{C};', 'param c{C};', 'param a{R,C};', 'param b{R};', '',
-                     f'{optimoption} cost' + ' : sum {i in C} c[i]*x[i];'] + constsmod
+        for i in range(1,m+1):
+            if len(compIndSetList) == 0:
+                compconst = ''
+            else:
+                compconst = '  sum {k in '+compInd+'}' + f' a[{i},k]*y[k]'
+            constsmod.extend([''] + [f'subject to const{i}:'] + [
+                '  sum {j in '+newInd+'}' + f' a[{i},j]*x[j] '+ compconst + '{ineqs[i-1]} b[{i}];'])
+        constsmod.extend([''] + [f'subject to const{m + 1}' + ' {i in '+ newInd +'} :'] + [f'  x[i] {solsgn} 0;'])
+        if len(compIndSetList) == 0:
+            compcost  = ''
+            vardisp = ''
+        else:
+            compcost = 'sum {j in '+compInd+'} c[j]*x[j]'
+            vardisp = 'y'
+            constsmod.extend([''] + [f'subject to const{m + 2}' + ' {j in ' + compInd + '} :'] + [f'  y[j] {solsgn} 0;'])
+        lineswmod = ['param m >= 0, integer;', 'param n >= 0, integer;', '', '', 'set R := 1..m;', 'set C := 1..n;', newIndSet, compIndSet ,'',
+                     'var x{'+ newInd + '}' + soltype + ';', compInd  , 'param c{C};', 'param a{R,C};', 'param b{R};', '',
+                     f'{optimoption} cost' + ' : '+'sum {i in '+newInd+'} c[i]*x[i]'+ compcost + ';'] + constsmod
         lineswrun = ['reset;', f'model {name}.mod;', f'data {name}.dat;', 'option solver gurobi;', 'solve;',
-                     'display x;',
+                     'display x'+vardisp+';',
                      'display cost;']
         wamplmod.writelines(line + '\n' for line in lineswmod)
         wamplrun.writelines(line + '\n' for line in lineswrun)
@@ -82,20 +126,48 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
         ampl.solve()
         solve_result = ampl.get_value("solve_result")
         if solve_result == 'solved':
-            x = ampl.get_variable("x").get_values().to_pandas().values
+            xpd = ampl.get_variable("x").get_values().to_pandas().values
+            x = list()
+            for i in range(0,n):
+                if (i+1) in newIndSetList:
+                    x.append(xpd[0][0])
+                    xpd.pop(0)
+                else:
+                    x.append(0)
+            if len(compIndSetList) == 0:
+                y = list()
+                for _ in range(0,n):
+                    y.append(0)
+            else:
+                ypd = ampl.get_variable("y").get_values().to_pandas().values
+                y = list()
+                for i in range(0, n):
+                    if (i + 1) in compIndSetList:
+                        y.append(ypd[0][0])
+                        ypd.pop(0)
+                    else:
+                        y.append(0)
             sollist = list()
-            for i in x:
-                sollist.append(i[0])
+            for i in range(0,n):
+                sollist.append(x[i]+y[i])
             soltuple = tuple(sollist)
+            print(f'La solución es {soltuple}')
+            R = max(list(map(lambda x: abs(x), soltuple))) + 1
         else:
             soltuple = None
-        print(f'La solución es {soltuple}')
-        R = max(list(map(lambda x: abs(x),soltuple))) + 1
+            print('El problema no tiene solución')
+            R = 10
         plotspan = ''
         if solsgn == '<=':
             plotspan += f'-{R}'+',0}'
         else:
             plotspan += f'0,{R}'+'}'
+        if soltuple != None:
+            Listplot2D = 'ListPlot[{{'+ f'{list(soltuple)[0]} , {list(soltuple)[1]}' +'}} -> {"'+f'{soltuple}'+'"}, PlotRange -> {{' + plotspan + ', {' + plotspan + '}, PlotStyle -> Directive[PointSize[Large], Red]],'
+            Listplot3D = ' ListPointPlot3D[{{'+ f'{list(soltuple)[0]} , {list(soltuple)[1]} , {list(soltuple)[2]}' +'}}, PlotRange -> {{' + plotspan + ', {' + plotspan + '}, PlotStyle -> Directive[PointSize[Large], Red]],'
+        else:
+            Listplot2D = ''
+            Listplot3D = ''
         sgngrad = ''
         if optimoption == 'minimize':
             sgngrad = '-'
@@ -105,7 +177,7 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
             consts = f'({A[0][0]})*x + ({A[0][1]})*y {ineqs[0]} {b[0]}'
             for i in range(1, m):
                 consts += f' && ({A[i][0]})*x + ({A[i][1]})*y {ineqs[i]} {b[i]}'
-            lineswmath = ['Show[ContourPlot['+f'({c[0]}*x + {c[1]}*y)'+', {x,' + plotspan + ', {y,' + plotspan + ', ContourStyle -> Opacity[0.5], Contours -> 50],RegionPlot[' + consts + ',{x,' + plotspan + ', {y,' + plotspan + ', PlotPoints -> 100, PlotStyle -> Directive[Purple, Opacity[0.8]]], ListPlot[{{'+ f'{list(soltuple)[0]} , {list(soltuple)[1]}' +'}} -> {"'+f'{soltuple}'+'"}, PlotRange -> {{' + plotspan + ', {' + plotspan + '}, PlotStyle -> Directive[PointSize[Large], Red]],'+ 'VectorPlot[Evaluate@Grad['+sgngrad+ f'({c[0]}*x + {c[1]}*y)'+', {x, y}], {x,' + plotspan +', {y,' + plotspan + ', VectorScale -> Small, VectorPoints -> Coarse, VectorStyle -> Green]]']
+            lineswmath = ['Show[ContourPlot['+f'({c[0]}*x + {c[1]}*y)'+', {x,' + plotspan + ', {y,' + plotspan + ', ContourStyle -> Opacity[0.5], Contours -> 50],RegionPlot[' + consts + ',{x,' + plotspan + ', {y,' + plotspan + ', PlotPoints -> 100, PlotStyle -> Directive[Purple, Opacity[0.8]]],' + f'{Listplot2D}' + 'VectorPlot[Evaluate@Grad['+sgngrad+ f'({c[0]}*x + {c[1]}*y)'+', {x, y}], {x,' + plotspan +', {y,' + plotspan + ', VectorScale -> Small, VectorPoints -> Coarse, VectorStyle -> Green]]']
             wmath.writelines(line + '\n' for line in lineswmath)
             wmath.close()
             mathfile = open(f'{name}.nb', 'r').read()
@@ -124,7 +196,7 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
             consts = f'({A[0][0]})*x + ({A[0][1]})*y + ({A[0][2]})*z {ineqs[0]} {b[0]}'
             for i in range(1, m):
                 consts += f' && ({A[i][0]})*x + ({A[i][1]})*y + ({A[i][2]})*z {ineqs[i]} {b[i]}'
-            lineswmath = ['Show[ContourPlot3D['+f'({c[0]}*x + {c[1]}*y + {c[2]}*z)'+', {x,' + plotspan + ', {y,' + plotspan + ', {z,' + plotspan + ', ContourStyle -> Opacity[0.5], Contours -> 10],RegionPlot[' + consts + ',{x,' + plotspan + ', {y,' + plotspan + ' {z,' + plotspan + ', PlotPoints -> 100, PlotStyle -> Directive[Purple, Opacity[0.8]]], ListPointPlot3D[{{'+ f'{list(soltuple)[0]} , {list(soltuple)[1]} , {list(soltuple)[2]}' +'}}, PlotRange -> {{' + plotspan + ', {' + plotspan + '}, PlotStyle -> Directive[PointSize[Large], Red]],'+ 'VectorPlot3D[Evaluate@Grad['+sgngrad+ f'({c[0]}*x + {c[1]}*y + {c[2]}*z)'+', {x, y, z}], {x,' + plotspan +', {y,' + plotspan + ', VectorScale -> Small, VectorPoints -> Coarse, VectorStyle -> Green]]']
+            lineswmath = ['Show[ContourPlot3D['+f'({c[0]}*x + {c[1]}*y + {c[2]}*z)'+', {x,' + plotspan + ', {y,' + plotspan + ', {z,' + plotspan + ', ContourStyle -> Opacity[0.5], Contours -> 10],RegionPlot[' + consts + ',{x,' + plotspan + ', {y,' + plotspan + ' {z,' + plotspan + ', PlotPoints -> 100, PlotStyle -> Directive[Purple, Opacity[0.8]]],' + f'{Listplot3D}' + 'VectorPlot3D[Evaluate@Grad['+sgngrad+ f'({c[0]}*x + {c[1]}*y + {c[2]}*z)'+', {x, y, z}], {x,' + plotspan +', {y,' + plotspan + ', VectorScale -> Small, VectorPoints -> Coarse, VectorStyle -> Green]]']
             wmath.writelines(line + '\n' for line in lineswmath)
             wmath.close()
             mathfile = open(f'{name}.nb', 'r').read()
@@ -142,4 +214,4 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
         else:
             print("I cannot plot this data")
     else:
-        print('Plz, enter a proper problem type: either minimize or maximize')
+        print('Plz, enter a proper problem type: either minimize, maximize, [minimize, integer], [maximize, integer], [minimize, integer, list of int vars], [maximize, integer, list of int vars] ')
