@@ -2,6 +2,7 @@ from wolframclient.evaluation import WolframCloudSession, SecuredAuthenticationK
 from wolframclient.language import wlexpr, wl
 from PIL import Image
 import io
+import numpy as np
 from amplpy import AMPL, tools
 ampl = tools.ampl_notebook(
     modules=["gurobi"], # modules to install
@@ -76,17 +77,17 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
             if len(compIndSetList) == 0:
                 compconst = ''
             else:
-                compconst = '  sum {k in '+compInd+'}' + f' a[{i},k]*y[k]'
+                compconst = '+  sum {k in '+'J'+'}' + f' a[{i},k]*y[k]'
             constsmod.extend([''] + [f'subject to const{i}:'] + [
-                '  sum {j in '+newInd+'}' + f' a[{i},j]*x[j] '+ compconst + '{ineqs[i-1]} b[{i}];'])
+                '  sum {j in '+newInd+'}' + f' a[{i},j]*x[j] '+ compconst + f'{ineqs[i-1]} b[{i}];'])
         constsmod.extend([''] + [f'subject to const{m + 1}' + ' {i in '+ newInd +'} :'] + [f'  x[i] {solsgn} 0;'])
         if len(compIndSetList) == 0:
             compcost  = ''
             vardisp = ''
         else:
-            compcost = 'sum {j in '+compInd+'} c[j]*x[j]'
+            compcost = '+ sum {j in '+'J'+'} c[j]*y[j]'
             vardisp = 'y'
-            constsmod.extend([''] + [f'subject to const{m + 2}' + ' {j in ' + compInd + '} :'] + [f'  y[j] {solsgn} 0;'])
+            constsmod.extend([''] + [f'subject to const{m + 2}' + ' {j in ' + 'J' + '} :'] + [f'  y[j] {solsgn} 0;'])
         lineswmod = ['param m >= 0, integer;', 'param n >= 0, integer;', '', '', 'set R := 1..m;', 'set C := 1..n;', newIndSet, compIndSet ,'',
                      'var x{'+ newInd + '}' + soltype + ';', compInd  , 'param c{C};', 'param a{R,C};', 'param b{R};', '',
                      f'{probtype} cost' + ' : '+'sum {i in '+newInd+'} c[i]*x[i]'+ compcost + ';'] + constsmod
@@ -131,7 +132,7 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
             for i in range(0,n):
                 if (i+1) in newIndSetList:
                     x.append(xpd[0][0])
-                    xpd.pop(0)
+                    xpd = np.delete(xpd,0,0)
                 else:
                     x.append(0)
             if len(compIndSetList) == 0:
@@ -144,7 +145,7 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
                 for i in range(0, n):
                     if (i + 1) in compIndSetList:
                         y.append(ypd[0][0])
-                        ypd.pop(0)
+                        ypd = np.delete(ypd,0,0)
                     else:
                         y.append(0)
             sollist = list()
@@ -162,18 +163,16 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
             plotspan += f'-{R}'+',0}'
         else:
             plotspan += f'0,{R}'+'}'
-        if soltuple != None:
-            Listplot2D = 'ListPlot[{{'+ f'{list(soltuple)[0]} , {list(soltuple)[1]}' +'}} -> {"'+f'{soltuple}'+'"}, PlotRange -> {{' + plotspan + ', {' + plotspan + '}, PlotStyle -> Directive[PointSize[Large], Red]],'
-            Listplot3D = ' ListPointPlot3D[{{'+ f'{list(soltuple)[0]} , {list(soltuple)[1]} , {list(soltuple)[2]}' +'}}, PlotRange -> {{' + plotspan + ', {' + plotspan + '}, PlotStyle -> Directive[PointSize[Large], Red]],'
-        else:
-            Listplot2D = ''
-            Listplot3D = ''
         sgngrad = ''
-        if optimoption == 'minimize':
+        if probtype == 'minimize':
             sgngrad = '-'
         else:
             sgngrad = ''
         if n == 2:
+            if soltuple != None:
+              Listplot2D = 'ListPlot[{{'+ f'{list(soltuple)[0]} , {list(soltuple)[1]}' +'}} -> {"'+f'{soltuple}'+'"}, PlotRange -> {{' + plotspan + ', {' + plotspan + '}, PlotStyle -> Directive[PointSize[Large], Red]],'
+            else:
+              Listplot2D = ''
             consts = f'({A[0][0]})*x + ({A[0][1]})*y {ineqs[0]} {b[0]}'
             for i in range(1, m):
                 consts += f' && ({A[i][0]})*x + ({A[i][1]})*y {ineqs[i]} {b[i]}'
@@ -193,6 +192,10 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
               img = Image.open(io.BytesIO(img_data))
             return img
         elif n == 3:
+            if soltuple != None:
+              Listplot3D = ' ListPointPlot3D[{{'+ f'{list(soltuple)[0]} , {list(soltuple)[1]} , {list(soltuple)[2]}' +'}}, PlotRange -> {{' + plotspan + ', {' + plotspan + '}, PlotStyle -> Directive[PointSize[Large], Red]],'
+            else:
+              Listplot3D = ''
             consts = f'({A[0][0]})*x + ({A[0][1]})*y + ({A[0][2]})*z {ineqs[0]} {b[0]}'
             for i in range(1, m):
                 consts += f' && ({A[i][0]})*x + ({A[i][1]})*y + ({A[i][2]})*z {ineqs[i]} {b[i]}'
