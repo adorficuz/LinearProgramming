@@ -1,3 +1,4 @@
+from amplpy import AMPL as ampl
 #Plz Insert the Constraints' Matrix A
 # as an array of its rows, where each row is itself an array of its cols,
 #ie A = [row1,..,rowm], where rowi = [Ai1,...,Ain].
@@ -73,6 +74,16 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
         costs[-1] += ';'
         lineswdat.extend(matrix + ['', 'param c:='] + costs + ['', 'param b:='] + resources)
         wampldata.writelines(line + '\n' for line in lineswdat)
+        ampl.read(f"/content/{name}.mod")
+        ampl.read_data(f"/content/{name}.dat")
+        ampl.option["solver"] = "gurobi"
+        ampl.solve()
+        solve_result = ampl.get_value("solve_result")
+        if solve_result == 'solved':
+            x = ampl.get_variable("x").get_values()
+        else:
+            x = None
+        print(x)
         if n == 2:
             consts = f'({A[0][0]})*x + ({A[0][1]})*y {ineqs[0]} {b[0]}'
             for i in range(1, m):

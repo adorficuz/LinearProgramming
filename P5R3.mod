@@ -5,12 +5,12 @@ param n >= 0, integer;
 set R := 1..m;
 set C := 1..n;
 
-var x{C};
+var x{C} integer;
 param c{C};
 param a{R,C};
 param b{R};
 
-minimize cost : sum {i in C} c[i]*x[i];
+maximize cost : sum {i in C} c[i]*x[i];
 
 subject to const1:
   sum {j in C} a[1,j]*x[j] <= b[1];
@@ -25,4 +25,4 @@ subject to const4:
   sum {j in C} a[4,j]*x[j] <= b[4];
 
 subject to const5 {j in C} :
-  x[j] >= 0;
+  x[j] <= 0;
