@@ -1,4 +1,5 @@
 from amplpy import AMPL as ampl
+import pandas
 #Plz Insert the Constraints' Matrix A
 # as an array of its rows, where each row is itself an array of its cols,
 #ie A = [row1,..,rowm], where rowi = [Ai1,...,Ain].
@@ -80,10 +81,14 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
         ampl.solve()
         solve_result = ampl.get_value("solve_result")
         if solve_result == 'solved':
-            x = ampl.get_variable("x").get_values()
+            x = ampl.get_variable("x").get_values().to_pandas().values
+            sollist = list()
+            for i in x:
+                sollist.append(i[0])
+            soltuple = tuple(sollist)
         else:
-            x = None
-        print(x)
+            soltuple = None
+        print(f'La solución es {soltuple}')
         if n == 2:
             consts = f'({A[0][0]})*x + ({A[0][1]})*y {ineqs[0]} {b[0]}'
             for i in range(1, m):
@@ -91,7 +96,7 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
             lineswmath = [f'a = {c[0]};', f'b = {c[1]};', f'f[a_, b_, x_, y_] := (a*x + b*y) ;', f'R = 10;',
                           'VectorPlot[Evaluate@Grad['+sgngrad+'f[a, b, x, y], {x, y}], {x,' + plotspan +', {y,' + plotspan + ', VectorScale -> Small, VectorPoints -> Coarse, VectorStyle -> Green];'
                 ,
-                          'Show[ContourPlot[f[a, b, x, y], {x,' + plotspan + ', {y,' + plotspan + ', ContourStyle -> Opacity[0.5], Contours -> 50],RegionPlot[' + consts + ',{x,' + plotspan + ', {y,' + plotspan + ', PlotPoints -> 100, PlotStyle -> Directive[Purple, Opacity[0.8]]], ListPlot[{{0, 0}} -> {"(0,0)"}, PlotRange -> {{' + plotspan + ', {' + plotspan + '}, PlotStyle -> Directive[PointSize[Large], Red]], %]']
+                          'Show[ContourPlot[f[a, b, x, y], {x,' + plotspan + ', {y,' + plotspan + ', ContourStyle -> Opacity[0.5], Contours -> 50],RegionPlot[' + consts + ',{x,' + plotspan + ', {y,' + plotspan + ', PlotPoints -> 100, PlotStyle -> Directive[Purple, Opacity[0.8]]], ListPlot[{{'+ f'{list(soltuple)[0][0]} , {list(soltuple)[1][0]}' +'}} -> {"'+f'{soltuple}'+'"}, PlotRange -> {{' + plotspan + ', {' + plotspan + '}, PlotStyle -> Directive[PointSize[Large], Red]], %]']
             wmath.writelines(line + '\n' for line in lineswmath)
         elif n == 3:
             consts = f'({A[0][0]})*x + ({A[0][1]})*y + ({A[0][2]})*z {ineqs[0]} {b[0]}'
@@ -101,7 +106,7 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
                           f'f[a_, b_, c_ , x_, y_ , z_] := (a*x + b*y +c*z) ;', f'R = 10;',
                           'VectorPlot3D[Evaluate@Grad['+sgngrad+'f[a, b, c, x, y ,z], {x, y, z}], {x,' + plotspan +', {y,' + plotspan +', {z,' + plotspan +', VectorScale -> Small, VectorPoints -> Coarse, VectorStyle -> Green];'
                 ,
-                          'Show[ContourPlot[f[a, b, c, x, y, z], {x,' + plotspan +', {y,' + plotspan +', {z,' + plotspan +', ContourStyle -> Opacity[0.5], Contours -> 10],RegionPlot[' + consts + ',{x,' + plotspan +', {y,' + plotspan +', {z,' + plotspan +', PlotPoints -> 100, PlotStyle -> Directive[Purple, Opacity[0.8]]], ListPointPlot3D[{{0, 0, 0}}, PlotRange -> {{' + plotspan + ', {' + plotspan + ', {' + plotspan + '}, PlotStyle -> Directive[PointSize[Large], Red]], %]']
+                          'Show[ContourPlot[f[a, b, c, x, y, z], {x,' + plotspan +', {y,' + plotspan +', {z,' + plotspan +', ContourStyle -> Opacity[0.5], Contours -> 10],RegionPlot[' + consts + ',{x,' + plotspan +', {y,' + plotspan +', {z,' + plotspan +', PlotPoints -> 100, PlotStyle -> Directive[Purple, Opacity[0.8]]], ListPointPlot3D[{{'+f'{list(soltuple)[0][0]}'+f'{list(soltuple)[1][0]}'+f'{list(soltuple)[2][0]}'+'}}, PlotRange -> {{' + plotspan + ', {' + plotspan + ', {' + plotspan + '}, PlotStyle -> Directive[PointSize[Large], Red]], %]']
             wmath.writelines(line + '\n' for line in lineswmath)
         else:
             print("I cannot plot this data")
