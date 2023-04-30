@@ -75,6 +75,9 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
         costs[-1] += ';'
         lineswdat.extend(matrix + ['', 'param c:='] + costs + ['', 'param b:='] + resources)
         wampldata.writelines(line + '\n' for line in lineswdat)
+        wampldata.close()
+        wamplmod.close()
+        wamplrun.close()
         ampl.read(f"/content/{name}.mod")
         ampl.read_data(f"/content/{name}.dat")
         ampl.option["solver"] = "gurobi"
