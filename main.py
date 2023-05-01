@@ -69,7 +69,7 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
             compIndSetList = [item for item in list(range(1,n+1)) if item not in newIndSetList]
             compIndSet = 'set J := {' + f'{compIndSetList[0]}'
             for i in range(1,len(compIndSetList)):
-                compIndSet += f', {compIndSet[i]}'
+                compIndSet += f', {compIndSetList[i]}'
             compIndSet += '};'
             soltype = ', integer'
         constsmod = list()
