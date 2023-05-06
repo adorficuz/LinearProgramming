@@ -32,7 +32,7 @@ import pandas
 #solsgn = '>='
 #name = 'P5R3'
 def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
-    if optimoption == 'minimize' or optimoption == 'maximize' or (len(optimoption) == 2 and (optimoption[0] == 'minimize' or optimoption[0] == 'maximize') and optimoption[1] == 'integer') or (len(optimoption) == 3 and (optimoption[0] == 'minimize' or optimoption[0] == 'maximize') and optimoption[1] == 'integer' and len(optimoption[2]) != len(A[0])):
+    if optimoption == 'minimize' or optimoption == 'maximize' or (len(optimoption) == 2 and (optimoption[0] == 'minimize' or optimoption[0] == 'maximize') and (optimoption[1] == 'integer' or optimoption[1] == 'binary')) or (len(optimoption) == 3 and (optimoption[0] == 'minimize' or optimoption[0] == 'maximize') and optimoption[1] == 'integer' and len(optimoption[2]) != len(A[0])):
         m = len(A)
         n = len(A[0])
         wmath = open(f"{name}.nb", "w+")
@@ -56,7 +56,7 @@ def LinProgProb(A, b, c, ineqs, optimoption, solsgn, name):
             compInd  = ''
             compIndSet = ''
             compIndSetList = list()
-            soltype = ', integer'
+            soltype = f', {optimoption[1]}'
         else:
             probtype = optimoption[0]
             newInd = 'I'
